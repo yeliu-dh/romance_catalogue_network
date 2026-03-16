@@ -1,9 +1,6 @@
 import pdfplumber
 from collections import defaultdict
 
-
-
-
 def extract_words_per_page(path_pdf, start_page=10):
     """
     read text of a certain page
@@ -20,10 +17,10 @@ def group_words_into_lines(words, y_tolerance=2):
     按照提取出的词的bottom坐标，整理成行
     
     """
-    
     lines = defaultdict(list)
     for w in words:
         # 用四舍五入避免轻微浮动
+        # ?
         line_key = round(w["bottom"] / y_tolerance) * y_tolerance
         lines[line_key].append(w)
 
@@ -39,8 +36,8 @@ def group_words_into_lines(words, y_tolerance=2):
 
 def extract_text_from_pdf(path_pdf, start_page, end_page):
     all_lines=[]
-    for page in range(start_page, end_page):
-        print(f"page {page}".center(100,"-"))
+    for page in range(start_page-1, end_page):
+        print(f"page {page+1}".center(100,"-"))
         words=extract_words_per_page(path_pdf, page)
         lines = group_words_into_lines(words)
         all_lines.extend(lines)
