@@ -44,4 +44,5 @@ def extract_text_from_pdf(path_pdf, start_page, end_page):
         for line in lines:
             print(line)
     return all_lines
-            
+ 
+ 
