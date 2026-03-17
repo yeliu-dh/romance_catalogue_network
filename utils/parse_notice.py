@@ -154,39 +154,6 @@ def eliminate_ponc(s):
     return clean_s
 
 
-def roman_to_int(s):
-    
-    ROMAN_MAP = {
-        'i':1,'v':5,'x':10,'l':50,'c':100
-    }
-    s = s.lower()
-    total = 0
-    prev = 0
-
-    for ch in reversed(s):
-        val = ROMAN_MAP.get(ch, 0)
-        if val < prev:
-            total -= val
-        else:
-            total += val
-        prev = val
-
-    return total
-
-
-def fix_roman_ordinal(text):
-    
-    def repl(m):
-        roman = m.group(1)
-        suffix = m.group(2)
-
-        num = roman_to_int(roman)
-
-        return f"{num}{suffix}"
-
-    return re.sub(r'\b([ivxlc]+)(th|st|nd|rd)\b', repl, text, flags=re.I)
-
-
 def get_notice_info(notices):
     notice_info=[]
     for mss, notice in notices.items():
@@ -248,3 +215,73 @@ def extract_notice_pipeline(path_pdf, start_page, end_page):
         print(notice_info)    
         result.extend(notice_info)
     return result
+
+
+
+
+
+
+
+# ====================================CLEAN================================
+
+from rapidfuzz import process, fuzz
+
+def fuzzy_research(request, contexts, cutoff=70):
+    # for r in list_research:
+    # 若contexts中铀元素包含待查询内容
+    el_contains=[c for c in contexts if request in c]
+    if el_contains :
+        el=el_contains[0].strip()
+        return request
+        
+    #若没有匹配，进行模糊搜索：
+    result=process.extractOne(
+        request, 
+        contexts,
+        scorer=fuzz.ratio,
+        score_cutoff=cutoff
+    )
+    if result:            
+        # print(result[0])
+        idx_result=contexts.index(result[0])
+        el=contexts[idx_result].strip()
+        # print(f"fuzzy result:{result[0]}")   
+        return result[0]
+    
+    else:
+        # print(f"no match for '{r}'!")
+        return None
+    
+    
+
+def roman_to_int(s):
+    
+    ROMAN_MAP = {
+        'i':1,'v':5,'x':10,'l':50,'c':100
+    }
+    s = s.lower()
+    total = 0
+    prev = 0
+
+    for ch in reversed(s):
+        val = ROMAN_MAP.get(ch, 0)
+        if val < prev:
+            total -= val
+        else:
+            total += val
+        prev = val
+
+    return total
+
+
+def fix_roman_ordinal(text):
+    
+    def repl(m):
+        roman = m.group(1)
+        suffix = m.group(2)
+
+        num = roman_to_int(roman)
+
+        return f"{num}{suffix}"
+
+    return re.sub(r'\b([ivxlc]+)(th|st|nd|rd)\b', repl, text, flags=re.I)
