@@ -185,10 +185,12 @@ def get_notice_info(notices):
                         size=eliminate_ponc(notice_el[1][first_upper_idx:])
         
                 info={
+                    "notice":notice,
                     "mss":mss,
-                    "mateiral":material,
+                    "material":material,
                     "cent":cent,
                     "size":size,
+                    
                     }
             
                 notice_info.append(info)    
@@ -252,36 +254,122 @@ def fuzzy_research(request, contexts, cutoff=70):
         # print(f"no match for '{r}'!")
         return None
     
-    
+import re
 
-def roman_to_int(s):
+def fuzzy_research2(request, contexts, cutoff=70): 
+    if not request:
+        return None
     
-    ROMAN_MAP = {
-        'i':1,'v':5,'x':10,'l':50,'c':100
-    }
+    for c in contexts :
+        if c in request:
+            return c  
+    
+    #若没有匹配，进行模糊搜索：
+    result=process.extractOne(
+        request, 
+        contexts,
+        scorer=fuzz.ratio,
+        score_cutoff=cutoff
+    )# results是request在contexts中的匹配，所以是从contexts中选
+    
+    if result:              
+        return result[0]
+    
+    else:
+        print(f"no match for '{request}'!")
+        return None
+    
+    
+    
+    
+    
+# --- 罗马数字转换 ---
+def roman_to_int(s):
+    roman_map = {'i':1, 'v':5, 'x':10, 'l':50, 'c':100, 'd':500, 'm':1000}
     s = s.lower()
+    
     total = 0
     prev = 0
-
-    for ch in reversed(s):
-        val = ROMAN_MAP.get(ch, 0)
+    for char in reversed(s):
+        if char not in roman_map:
+            return None
+        val = roman_map[char]
         if val < prev:
             total -= val
         else:
             total += val
-        prev = val
-
+            prev = val
     return total
 
 
-def fix_roman_ordinal(text):
+# --- OCR 清洗 ---
+def clean_ocr(text):
+    text = text.lower()
     
-    def repl(m):
-        roman = m.group(1)
-        suffix = m.group(2)
+    # 常见 OCR 错误替换（可以继续加）
+    replacements = {
+        ' ': '',
+        '0': 'o',
+        '1': 'i',
+        '5': 's',
+        'm': 'n',   # xmih → xnih（有时有用）
+        'z': 's',   # zrth → srth
+    }
+    
+    for k, v in replacements.items():
+        text = text.replace(k, v)
+    
+    return text
 
-        num = roman_to_int(roman)
 
-        return f"{num}{suffix}"
+# --- 主函数 ---
+def parse_century(text):
+    if not text or not isinstance(text, str):
+        return None
+    
+    text = text.lower().strip()
+    
+    # =========================
+    # 🧩 情况1：包含 th → 罗马序数
+    # =========================
+    if 'th' in text:
+        text_clean = clean_ocr(text)
+        
+        # 提取罗马部分
+        match = re.search(r'([ivxlcdm]+)th', text_clean)
+        if match:
+            roman = match.group(1)
+            num = roman_to_int(roman)
+            
+            # 简单合理性过滤
+            if num and 1 <= num <= 30:
+                return num
+        
+        return None
+    
+    # =========================
+    # 🧩 情况2：年份 → 世纪
+    # =========================
+    # 提取数字
+    match = re.search(r'\d{3,4}', text)
+    if match:
+        year = int(match.group())
+        
+        # 世纪计算公式
+        century = (year - 1) // 100 + 1
+        return century
+    
+    return None
+tests = [
+    'xvth',
+    'xmih',
+    'l ate xy th',
+    'zrth',
+    'about 1400',
+    'about 1824',
+    '1680',
+    None
+]
 
-    return re.sub(r'\b([ivxlc]+)(th|st|nd|rd)\b', repl, text, flags=re.I)
+for t in tests:
+    print(t, "→", parse_century(t))
