@@ -30,11 +30,11 @@ def complie_index_table(index_table):
     """
             
     index_table_clean={}
-    for mss_cat, works in index_table.items():
+    for coll, works in index_table.items():
         for work in works:
-            title = work['name']
+            title = work['name'].lower().strip()
             page = work['page']
-            mss_ff = work["mss"]
+            mss_ff = work["mss"].lower().strip()
 
             mss, ff = split_by_ff(mss_ff)
 
@@ -42,7 +42,8 @@ def complie_index_table(index_table):
                 index_table_clean[title] = []# one title=> plu mss!
 
             index_table_clean[title].append({
-                'collection':mss_cat,
+                'collection':coll.lower(),
+                "mss_ff":mss_ff,
                 'mss':mss,
                 'ff': ff,
                 'page': page
@@ -54,14 +55,14 @@ def complie_index_table(index_table):
 def extract_cycle(s):
     if "cycle" in s.lower():
         left, right = s.split(":", 1)
-        return left.strip(), right.strip()
-    return None, s.strip()
+        return left.strip().lower(), right.strip().lower()
+    return None, s.strip().lower()
     
 def extract_author(s):
     if ", by" in s:
         left, right = s.split(", by", 1)
-        return left.strip(), right.strip()
-    return s.strip(), None
+        return left.strip().lower(), right.strip().lower()
+    return s.strip().lower(), None
 
 def get_short_title(s):
     if '(' in s:
@@ -83,8 +84,7 @@ def get_mss_info(title_theme, index_table_clean, score_cutoff=70):
     """
     get mss info from index table by the title of text
 
-    """
-    
+    """    
     # 1. EXACT match
     if title_theme in index_table_clean:
         title_index=title_theme
@@ -135,9 +135,10 @@ def compile_combined_table(index_table_clean,theme_table):
                     'title_theme':title_theme,
                     'title_index':None,
                     'author':author,
-                    'theme':theme,
+                    'theme':theme.lower(),
                     'cycle':cycle,
                     'collection': None,
+                    'mss_ff': None,
                     'mss':None,
                     'ff': None,
                     'page':page
@@ -149,9 +150,10 @@ def compile_combined_table(index_table_clean,theme_table):
                     'title_theme':title_theme,
                     'title_index':title_index,
                     'author':author,
-                    'theme':theme,
+                    'theme':theme.lower(),
                     'cycle':cycle,
                     'collection': info.get("collection",None),
+                    "mss_ff":info.get('mss_ff',None),
                     'mss': info.get("mss",None),
                     'ff': info.get("ff",None),
                     'page':page
@@ -180,6 +182,7 @@ def compile_combined_table(index_table_clean,theme_table):
                 'theme':None,
                 'cycle':None,
                 'collection': info.get('collection',None),
+                "mss_ff":info.get('mss_ff',None),
                 'mss':info.get('mss',None),
                 'ff': info.get('ff',None),
                 'page':info.get('page',None),
@@ -189,7 +192,20 @@ def compile_combined_table(index_table_clean,theme_table):
             
     ##------------- STEP3:to_csv-----------
     df_table=pd.DataFrame(table_clean)
+    def compile_mss_index(row):
+        coll=row["collection"]
+        mss_ff=row['mss_ff']
+        
+        if mss_ff and coll:
+            if not mss_ff.startswith(coll):
+                mss_index=f"{coll} {mss_ff}"
+            else : 
+                mss_index=f"{mss_ff}"
+        else :
+            mss_index=None
     
+        return mss_index
+    df_table['mss_index']=df_table.apply(lambda row : compile_mss_index(row), axis=1)
     
     return df_table
 

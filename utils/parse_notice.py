@@ -343,8 +343,8 @@ def parse_century(text):
             
             # 简单合理性过滤
             if num and 1 <= num <= 30:
-                return num
-        
+                return int(num)
+
         return None
     
     # =========================
@@ -357,19 +357,20 @@ def parse_century(text):
         
         # 世纪计算公式
         century = (year - 1) // 100 + 1
-        return century
+        return int(century)
     
     return None
-tests = [
-    'xvth',
-    'xmih',
-    'l ate xy th',
-    'zrth',
-    'about 1400',
-    'about 1824',
-    '1680',
-    None
-]
 
-for t in tests:
-    print(t, "→", parse_century(t))
+# tests = [
+#     'xvth',
+#     'xmih',
+#     'l ate xy th',
+#     'zrth',
+#     'about 1400',
+#     'about 1824',
+#     '1680',
+#     None
+# ]
+
+# for t in tests:
+#     print(t, "→", parse_century(t))
